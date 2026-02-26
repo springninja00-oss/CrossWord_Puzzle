@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tech Crossword</title>
+<script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-analytics.js"></script>
+
+
+<style>
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: Arial, sans-serif;
+    background: radial-gradient(circle at 20% 20%, #0f2027, #203a43, #2c5364);
+    overflow-x: hidden;
+    color: #00ffff;
+}
+
+h1 {
+    margin-top: 20px;
+    letter-spacing: 3px;
+}
+
+#timer {
+    font-size: 22px;
+    margin: 10px 0 20px;
+    color: #00ffcc;
+}
+
+.crossword {
+    display: grid;
+    grid-template-columns: repeat(9, 45px);
+    grid-template-rows: repeat(10, 45px);
+    margin-bottom: 30px;
+}
+
+.cell {
+    border: 1px solid #00ffff;
+    background: rgba(0,255,255,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cell input {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #00ffff;
+    font-size: 18px;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.correct { color: #00ff88 !important; }
+.wrong { color: #ff4d4d !important; }
+
+.r1{grid-row:1;} .r2{grid-row:2;} .r3{grid-row:3;} .r4{grid-row:4;}
+.r5{grid-row:5;} .r6{grid-row:6;} .r7{grid-row:7;} .r8{grid-row:8;}
+.r9{grid-row:9;} .r10{grid-row:10;}
+
+.c1{grid-column:1;} .c2{grid-column:2;} .c3{grid-column:3;}
+.c4{grid-column:4;} .c5{grid-column:5;} .c6{grid-column:6;}
+.c7{grid-column:7;} .c8{grid-column:8;} .c9{grid-column:9;}
+
+#message {
+    font-size: 20px;
+    margin: 15px;
+    color: #00ffcc;
+}
+
+#clues {
+    width: 400px;
+    padding: 15px;
+    border: 1px solid #00ffff;
+    background: rgba(0,255,255,0.05);
+    margin-bottom: 30px;
+}
+
+#clues h3 {
+    margin-bottom: 10px;
+}
+</style>
+</head>
+<body>
+
+<h1>TECH CROSSWORD</h1>
+<a href="Name.html">Go back to the name entry page</a>
+<div id="timer">Time: 03:00</div>
+
+<div class="crossword" id="crossword"></div>
+
+<div id="message"></div>
+
+
+<div id="clues">
+    <h3>Clues</h3>
+
+    <p><strong>1 (Down):</strong> A Country known for Cannes Film Festival.</p>
+
+    <p><strong>2 (Across):</strong> The planet that looks rusty.</p>
+
+    <p><strong>3 (Down):</strong> The smallest planet in our solar system.</p>
+
+    <p><strong>4 (Across):</strong> How many months make a year?</p>
+
+    <p><strong>5 (Across):</strong> A city-country known for its skyline and strict rules.</p>
+</div>
+</div>
+<script type="module">
+  // Import Firebase modules
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+  import { getAnalytics, logEvent } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-analytics.js";
+  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+  // Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyC7mTW65xMZK9FAAUjEwtOYKu3C2QPFNP8",
+    authDomain: "crossword-58fe3.firebaseapp.com",
+    projectId: "crossword-58fe3",
+    storageBucket: "crossword-58fe3.firebasestorage.app",
+    messagingSenderId: "208404520524",
+    appId: "1:208404520524:web:e65d5db1fd052e90679ee9",
+    measurementId: "G-D4Y0Z3N4W6"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  const db = getFirestore(app);
+
+  // Timer
+  let elapsed = 0;
+  const timerDisplay = document.getElementById("timer");
+  const timerInterval = setInterval(() => {
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    timerDisplay.innerText = `Time: ${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+    elapsed++;
+  }, 1000);
+
+  // Crossword data
+  const answers = {
+    1: "FRANCE",
+    2: "MARS",
+    3: "MERCURY",
+    4: "TWELVE",
+    5: "SINGAPORE"
+  };
+
+  const layout = [
+    { word: 1, row: 1, col: 3, dir: "down" },
+    { word: 2, row: 3, col: 2, dir: "across" },
+    { word: 3, row: 4, col: 8, dir: "down" },
+    { word: 4, row: 6, col: 1, dir: "across" },
+    { word: 5, row: 9, col: 1, dir: "across" }
+  ];
+
+  const crossword = document.getElementById("crossword");
+  const grid = {};
+
+  // Generate grid
+  for (let r = 1; r <= 10; r++) {
+    for (let c = 1; c <= 9; c++) {
+      grid[`${r}-${c}`] = "";
+    }
+  }
+
+  layout.forEach(item => {
+    const word = answers[item.word];
+    for (let i = 0; i < word.length; i++) {
+      let r = item.row;
+      let c = item.col;
+      if (item.dir === "across") c += i;
+      else r += i;
+      grid[`${r}-${c}`] = word[i];
+    }
+  });
+
+  // Render cells
+  Object.keys(grid).forEach(pos => {
+    if (grid[pos] !== "") {
+      const [r,c] = pos.split("-");
+      const cell = document.createElement("div");
+      cell.className = `cell r${r} c${c}`;
+      const input = document.createElement("input");
+      input.maxLength = 1;
+      input.dataset.correct = grid[pos];
+      input.addEventListener("input", checkLetter);
+      cell.appendChild(input);
+      crossword.appendChild(cell);
+    }
+  });
+
+  // Letter input check
+  function checkLetter(e) {
+    const input = e.target;
+    const correct = input.dataset.correct;
+    if (input.value.toUpperCase() === correct) {
+      input.classList.add("correct");
+      input.classList.remove("wrong");
+    } else {
+      input.classList.add("wrong");
+      input.classList.remove("correct");
+    }
+    checkCompletion();
+  }
+
+  // Completion check
+  function checkCompletion() {
+    const inputs = document.querySelectorAll("input");
+    let done = true;
+    inputs.forEach(input => {
+      if (input.value.toUpperCase() !== input.dataset.correct) done = false;
+    });
+    if (done) {
+      document.getElementById("message").innerText = "🎉 COMPLETED!";
+      clearInterval(timerInterval);
+
+      // Log event to Firebase Analytics
+      logEvent(analytics, 'crossword_completed', { time_taken: elapsed });
+
+      // Save results to Firestore
+      saveResults();
+    }
+  }
+
+  // Save results
+  async function saveResults() {
+    const playerName = localStorage.getItem("playerName") || "Anonymous";
+    try {
+      await addDoc(collection(db, "crossword_results"), {
+        name: playerName,
+        time_taken: elapsed,
+        completion_status: "Completed",
+        timestamp: new Date()
+      });
+      console.log("Results saved to Firestore!");
+    } catch (e) {
+      console.error("Error saving results:", e);
+    }
+  }
+</script>
+</html>
+
+</body>

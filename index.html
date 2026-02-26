@@ -91,7 +91,7 @@ h1 {
 <body>
 
 <h1>TECH CROSSWORD</h1>
-<a href="Name.html">Go back to the name entry page</a>
+
 <div id="timer">Time: 03:00</div>
 
 <div class="crossword" id="crossword"></div>
@@ -197,6 +197,19 @@ h1 {
       crossword.appendChild(cell);
     }
   });
+  // Prompt user for name
+function askForName() {
+  let playerName = prompt("Please enter your name:");
+  if (playerName) {
+    localStorage.setItem("playerName", playerName); // Save the name for later
+  } else {
+    alert("Name is required! Try again.");
+    askForName(); // Repeat prompt if no name is entered
+  }
+}
+
+// Call this function when the page loads
+askForName();
 
   // Letter input check
   function checkLetter(e) {
@@ -235,7 +248,7 @@ h1 {
   async function saveResults() {
     const playerName = localStorage.getItem("playerName") || "Anonymous";
     try {
-      await addDoc(collection(db, "crossword_results"), {
+      await addDoc(collection(db, "RESULTS_123"), {
         name: playerName,
         time_taken: elapsed,
         completion_status: "Completed",

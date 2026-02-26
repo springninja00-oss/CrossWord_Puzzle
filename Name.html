@@ -1,29 +1,2 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enter Your Name</title>
-</head>
-<body>
 
-<h1>Enter Your Name to Start the Game</h1>
-
-<!-- Form to input name -->
-<input type="text" id="nameInput" placeholder="Enter your name" />
-<button id="startButton">Start Game</button>
-
-<script>
-    document.getElementById('startButton').addEventListener('click', function() {
-        const playerName = document.getElementById('nameInput').value;
-        if (playerName) {
-            localStorage.setItem('playerName', playerName); // Store the player's name in localStorage
-            window.location.href = "Tech_Club_Crossword_Final.html"; // Navigate to the game page
-        } else {
-            alert("Please enter your name.");
-        }
-    });
-</script>
-
-</body>
 </html>
